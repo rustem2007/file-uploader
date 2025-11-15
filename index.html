@@ -5,273 +5,613 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Загрузка файлов в Supabase</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #eef2f3;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       display: flex;
       justify-content: center;
-      padding: 40px;
-      margin: 0;
+      align-items: center;
+      padding: 20px;
     }
 
     .container {
       width: 100%;
-      max-width: 450px;
+      max-width: 800px;
       background: white;
-      padding: 25px;
-      border-radius: 10px;
-      box-shadow: 0 0 12px #aaa;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
 
-    h2, h3 {
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
       text-align: center;
-      color: #333;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .upload-area {
+      border: 3px dashed #667eea;
+      border-radius: 15px;
+      padding: 40px;
+      text-align: center;
+      background: #f8f9ff;
+      transition: all 0.3s;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    .upload-area:hover {
+      border-color: #764ba2;
+      background: #f0f2ff;
+    }
+
+    .upload-area.dragover {
+      border-color: #764ba2;
+      background: #e8ebff;
+      transform: scale(1.02);
+    }
+
+    .upload-icon {
+      font-size: 50px;
+      margin-bottom: 15px;
+    }
+
+    .upload-area h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
+
+    .upload-area p {
+      color: #666;
+      font-size: 14px;
     }
 
     #fileInput {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      border: 2px dashed #ccc;
-      border-radius: 5px;
-      cursor: pointer;
-      box-sizing: border-box;
+      display: none;
     }
 
     #uploadBtn {
       width: 100%;
-      padding: 12px;
-      background: #007bff;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 10px;
       cursor: pointer;
       font-size: 16px;
-      font-weight: bold;
+      font-weight: 600;
+      transition: transform 0.2s;
+      margin-top: 15px;
     }
 
-    #uploadBtn:hover {
-      background: #0056b3;
+    #uploadBtn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
     }
 
     #uploadBtn:disabled {
       background: #ccc;
       cursor: not-allowed;
+      transform: none;
     }
 
-    #fileList {
-      margin: 15px 0;
-      min-height: 20px;
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
     }
 
-    #fileList p {
-      font-size: 14px;
-      color: #555;
-      margin: 5px 0;
+    .preview-item {
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f5f5f5;
+      padding: 10px;
+      text-align: center;
     }
 
-    hr {
-      margin: 25px 0;
+    .preview-item img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preview-item .file-icon {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+      background: #e8ebff;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .preview-item .file-name {
+      font-size: 12px;
+      color: #666;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .preview-item .remove-btn {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(255, 0, 0, 0.8);
+      color: white;
       border: none;
-      border-top: 1px solid #ddd;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
     }
 
-    .uploaded-file { 
+    .preview-item .remove-btn:hover {
+      background: rgba(255, 0, 0, 1);
+      transform: scale(1.1);
+    }
+
+    .progress-container {
+      display: none;
+      margin: 20px 0;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 30px;
+      background: #e8ebff;
+      border-radius: 15px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .divider {
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #667eea, transparent);
+      margin: 30px 0;
+    }
+
+    .files-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 10px;
-      background: #f7f7f7;
-      margin-bottom: 5px;
-      border-radius: 5px;
+      margin-bottom: 20px;
     }
 
-    .uploaded-file a {
-      color: #007bff;
-      text-decoration: none;
-      word-break: break-all;
-      flex: 1;
+    .files-header h2 {
+      color: #333;
+      font-size: 22px;
     }
 
-    .uploaded-file a:hover {
-      text-decoration: underline;
+    .files-count {
+      background: #667eea;
+      color: white;
+      padding: 5px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 600;
     }
 
-    .uploaded-file span {
-      color: #888;
+    .uploaded-files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+
+    .file-card {
+      background: #f8f9ff;
+      border-radius: 15px;
+      padding: 15px;
+      transition: all 0.3s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .file-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+    }
+
+    .file-card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .file-card .file-icon-large {
+      width: 100%;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      background: #e8ebff;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .file-info {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .file-info .name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-info .size {
       font-size: 12px;
-      margin-left: 10px;
+      color: #999;
     }
 
-    #uploadedFiles p {
+    .file-card .delete-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 59, 48, 0.9);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+      opacity: 0;
+    }
+
+    .file-card:hover .delete-btn {
+      opacity: 1;
+    }
+
+    .file-card .delete-btn:hover {
+      background: rgba(255, 59, 48, 1);
+      transform: scale(1.05);
+    }
+
+    .empty-state {
       text-align: center;
-      color: #888;
+      padding: 60px 20px;
+      color: #999;
+    }
+
+    .empty-state .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      font-size: 16px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading {
+      animation: spin 1s linear infinite;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h2>Загрузка файлов</h2>
-    <input type="file" id="fileInput" multiple accept=".jpg,.png,.pdf"> 
-    <button id="uploadBtn">Загрузить</button>
-    <div id="fileList"></div> 
-    <hr>
-    <h3>📂 Загруженные файлы:</h3>
-    <div id="uploadedFiles">Загрузка...</div> 
+    <div class="header">
+      <h1>☁️ Файловое хранилище</h1>
+      <p>Загружайте и управляйте своими файлами</p>
+    </div>
+
+    <div class="content">
+      <div class="upload-area" id="uploadArea">
+        <div class="upload-icon">📁</div>
+        <h3>Перетащите файлы сюда</h3>
+        <p>или нажмите для выбора (JPG, PNG, PDF)</p>
+        <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf">
+      </div>
+
+      <div id="previewGrid" class="preview-grid"></div>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill">0%</div>
+        </div>
+      </div>
+
+      <button id="uploadBtn" style="display:none;">Загрузить файлы</button>
+
+      <div class="divider"></div>
+
+      <div class="files-header">
+        <h2>📂 Загруженные файлы</h2>
+        <span class="files-count" id="filesCount">0</span>
+      </div>
+
+      <div id="uploadedFiles" class="uploaded-files-grid">
+        <div class="empty-state">
+          <div class="icon loading">⏳</div>
+          <p>Загрузка файлов...</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Supabase библиотека из CDN -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   
   <script>
-    // Ждем полной загрузки страницы
     window.addEventListener('load', function() {
-      console.log("=== СТАРТ ===");
-      
-      // Проверяем загрузку Supabase
       if (typeof supabase === 'undefined') {
-        console.error("❌ Supabase не найден");
-        document.getElementById('uploadedFiles').innerHTML = 
-          '<p style="color:red;">❌ Ошибка загрузки библиотеки Supabase</p>';
+        alert('❌ Ошибка загрузки Supabase');
         return;
       }
-      
-      console.log("✅ Supabase загружен");
 
       const supabaseUrl = 'https://epyutucscivggoitkbnz.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVweXV0dWNzY2l2Z2dvaXRrYm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxODQ4NjksImV4cCI6MjA3ODc2MDg2OX0.eW-2GJni95aCleqHa85oBpATb8VVj7kBykqqrxFWa4k';
-
       const client = supabase.createClient(supabaseUrl, supabaseKey);
-      console.log("✅ Клиент создан");
 
-      const fileInput = document.getElementById("fileInput");
-      const uploadBtn = document.getElementById("uploadBtn");
-      const fileListDiv = document.getElementById("fileList");
-      const uploadedFilesDiv = document.getElementById("uploadedFiles");
+      const uploadArea = document.getElementById('uploadArea');
+      const fileInput = document.getElementById('fileInput');
+      const uploadBtn = document.getElementById('uploadBtn');
+      const previewGrid = document.getElementById('previewGrid');
+      const progressContainer = document.getElementById('progressContainer');
+      const progressFill = document.getElementById('progressFill');
+      const uploadedFiles = document.getElementById('uploadedFiles');
+      const filesCount = document.getElementById('filesCount');
 
-      // Показ выбранных файлов
-      fileInput.addEventListener("change", function() {
-        fileListDiv.innerHTML = "";
-        if (fileInput.files.length === 0) return;
-        
-        for (let file of fileInput.files) {
-          const sizeKB = (file.size / 1024).toFixed(1);
-          fileListDiv.innerHTML += '<p>📄 ' + file.name + ' — ' + sizeKB + ' KB</p>';
-        }
+      let selectedFiles = [];
+
+      // Клик по зоне загрузки
+      uploadArea.addEventListener('click', () => fileInput.click());
+
+      // Drag & Drop
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
       });
 
-      // Загрузка файлов
-      uploadBtn.addEventListener("click", async function() {
-        if (fileInput.files.length === 0) {
-          alert("⚠️ Выберите файлы");
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect();
+      });
+
+      // Выбор файлов
+      fileInput.addEventListener('change', handleFileSelect);
+
+      function handleFileSelect() {
+        selectedFiles = Array.from(fileInput.files);
+        if (selectedFiles.length === 0) {
+          previewGrid.innerHTML = '';
+          uploadBtn.style.display = 'none';
           return;
         }
 
+        previewGrid.innerHTML = '';
+        uploadBtn.style.display = 'block';
+
+        selectedFiles.forEach((file, index) => {
+          const div = document.createElement('div');
+          div.className = 'preview-item';
+
+          if (file.type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            div.appendChild(img);
+          } else {
+            const icon = document.createElement('div');
+            icon.className = 'file-icon';
+            icon.textContent = '📄';
+            div.appendChild(icon);
+          }
+
+          const name = document.createElement('div');
+          name.className = 'file-name';
+          name.textContent = file.name;
+          div.appendChild(name);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = '×';
+          removeBtn.onclick = () => removeFile(index);
+          div.appendChild(removeBtn);
+
+          previewGrid.appendChild(div);
+        });
+      }
+
+      function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+        handleFileSelect();
+      }
+
+      // Загрузка
+      uploadBtn.addEventListener('click', async () => {
+        if (selectedFiles.length === 0) return;
+
         uploadBtn.disabled = true;
-        uploadBtn.textContent = "Загрузка...";
+        progressContainer.style.display = 'block';
 
-        let success = 0;
-        let errors = 0;
+        let uploaded = 0;
+        const total = selectedFiles.length;
 
-        for (let file of fileInput.files) {
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const timestamp = Date.now() + i;
+          const uniqueName = timestamp + '_' + file.name;
+
           try {
-            const timestamp = Date.now();
-            const uniqueName = timestamp + '_' + file.name;
-            
-            console.log("📤 Загрузка:", file.name);
-            
-            const { data, error } = await client.storage
+            const { error } = await client.storage
               .from('uploads')
               .upload(uniqueName, file, { upsert: true });
-            
-            if (error) {
-              console.error("❌ Ошибка:", error.message);
-              errors++;
-            } else {
-              console.log("✅ Загружено:", uniqueName);
-              success++;
-            }
+
+            if (!error) uploaded++;
           } catch (e) {
-            console.error("❌ Критическая ошибка:", e);
-            errors++;
+            console.error('Ошибка:', e);
           }
+
+          const progress = Math.round(((i + 1) / total) * 100);
+          progressFill.style.width = progress + '%';
+          progressFill.textContent = progress + '%';
         }
-        
-        if (success > 0) {
-          alert('✅ Загружено: ' + success + (errors > 0 ? '\n❌ Ошибок: ' + errors : ''));
-        } else {
-          alert('❌ Ошибка загрузки. Откройте консоль (F12)');
-        }
-        
-        fileInput.value = "";
-        fileListDiv.innerHTML = "";
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = "Загрузить";
-        
-        await loadFilesList();
+
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          progressFill.style.width = '0%';
+          uploadBtn.disabled = false;
+          selectedFiles = [];
+          fileInput.value = '';
+          previewGrid.innerHTML = '';
+          uploadBtn.style.display = 'none';
+          loadFilesList();
+        }, 500);
       });
 
       // Список файлов
       async function loadFilesList() {
-        console.log("📋 Загрузка списка...");
-        
         try {
           const { data, error } = await client.storage
             .from('uploads')
-            .list('', {
-              limit: 100,
-              sortBy: { column: 'created_at', order: 'desc' }
-            });
-          
+            .list('', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
+
           if (error) {
-            console.error("❌ Ошибка списка:", error.message);
-            uploadedFilesDiv.innerHTML = '<p style="color:red;">❌ ' + error.message + '</p>';
+            uploadedFiles.innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>' + error.message + '</p></div>';
             return;
           }
 
-          console.log("✅ Получено файлов:", data ? data.length : 0);
+          const files = data.filter(f => f.name !== '.emptyFolderPlaceholder');
+          filesCount.textContent = files.length;
 
-          uploadedFilesDiv.innerHTML = "";
-          let count = 0;
-
-          if (!data || data.length === 0) {
-            uploadedFilesDiv.innerHTML = '<p>📭 Файлов нет</p>';
+          if (files.length === 0) {
+            uploadedFiles.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Файлов пока нет</p></div>';
             return;
           }
 
-          for (let file of data) {
-            if (file.name === '.emptyFolderPlaceholder') continue;
+          uploadedFiles.innerHTML = '';
+
+          for (let file of files) {
+            const { data: urlData } = client.storage.from('uploads').getPublicUrl(file.name);
             
-            count++;
-            
-            const { data: urlData } = client.storage
-              .from('uploads')
-              .getPublicUrl(file.name);
-            
-            const sizeKB = file.metadata && file.metadata.size 
-              ? (file.metadata.size / 1024).toFixed(1) 
-              : '?';
-            
-            uploadedFilesDiv.innerHTML += 
-              '<div class="uploaded-file">' +
-              '<a href="' + urlData.publicUrl + '" target="_blank">' + file.name + '</a>' +
-              '<span>' + sizeKB + ' KB</span>' +
-              '</div>';
+            const card = document.createElement('div');
+            card.className = 'file-card';
+            card.onclick = () => window.open(urlData.publicUrl, '_blank');
+
+            const isImage = /\.(jpg|jpeg|png|gif)$/i.test(file.name);
+
+            if (isImage) {
+              const img = document.createElement('img');
+              img.src = urlData.publicUrl;
+              card.appendChild(img);
+            } else {
+              const icon = document.createElement('div');
+              icon.className = 'file-icon-large';
+              icon.textContent = '📄';
+              card.appendChild(icon);
+            }
+
+            const info = document.createElement('div');
+            info.className = 'file-info';
+
+            const name = document.createElement('div');
+            name.className = 'name';
+            name.textContent = file.name;
+            info.appendChild(name);
+
+            const size = document.createElement('div');
+            size.className = 'size';
+            size.textContent = file.metadata?.size ? (file.metadata.size / 1024).toFixed(1) + ' KB' : '?';
+            info.appendChild(size);
+
+            card.appendChild(info);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = '🗑️ Удалить';
+            deleteBtn.onclick = async (e) => {
+              e.stopPropagation();
+              if (!confirm('Удалить файл ' + file.name + '?')) return;
+              
+              const { error } = await client.storage.from('uploads').remove([file.name]);
+              if (!error) {
+                card.remove();
+                filesCount.textContent = parseInt(filesCount.textContent) - 1;
+                if (uploadedFiles.children.length === 0) {
+                  uploadedFiles.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>Файлов пока нет</p></div>';
+                }
+              } else {
+                alert('Ошибка удаления: ' + error.message);
+              }
+            };
+            card.appendChild(deleteBtn);
+
+            uploadedFiles.appendChild(card);
           }
-          
-          if (count === 0) {
-            uploadedFilesDiv.innerHTML = '<p>📭 Файлов нет</p>';
-          } else {
-            console.log("✅ Показано файлов:", count);
-          }
-          
         } catch (e) {
-          console.error("❌ Ошибка:", e);
-          uploadedFilesDiv.innerHTML = '<p style="color:red;">❌ ' + e.message + '</p>';
+          uploadedFiles.innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>' + e.message + '</p></div>';
         }
       }
 
-      // Первая загрузка
       loadFilesList();
     });
   </script>
