@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Загрузка файлов в Supabase</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #eef2f3;
+      display: flex;
+      justify-content: center;
+      padding: 40px;
+      margin: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 450px;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 12px #aaa;
+    }
+
+    h2, h3 {
+      text-align: center;
+      color: #333;
+    }
+
+    #fileInput {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    #uploadBtn {
+      width: 100%;
+      padding: 12px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    #uploadBtn:hover {
+      background: #0056b3;
+    }
+
+    #uploadBtn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    #fileList {
+      margin: 15px 0;
+      min-height: 20px;
+    }
+
+    #fileList p {
+      font-size: 14px;
+      color: #555;
+      margin: 5px 0;
+    }
+
+    hr {
+      margin: 25px 0;
+      border: none;
+      border-top: 1px solid #ddd;
+    }
+
+    .uploaded-file { 
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: #f7f7f7;
+      margin-bottom: 5px;
+      border-radius: 5px;
+    }
+
+    .uploaded-file a {
+      color: #007bff;
+      text-decoration: none;
+      word-break: break-all;
+      flex: 1;
+    }
+
+    .uploaded-file a:hover {
+      text-decoration: underline;
+    }
+
+    .uploaded-file span {
+      color: #888;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+
+    #uploadedFiles p {
+      text-align: center;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Загрузка файлов</h2>
+    <input type="file" id="fileInput" multiple accept=".jpg,.png,.pdf"> 
+    <button id="uploadBtn">Загрузить</button>
+    <div id="fileList"></div> 
+    <hr>
+    <h3>📂 Загруженные файлы:</h3>
+    <div id="uploadedFiles">Загрузка...</div> 
+  </div>
+
+  <!-- Supabase библиотека из CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // Ждем полной загрузки страницы
+    window.addEventListener('load', function() {
+      console.log("=== СТАРТ ===");
+      
+      // Проверяем загрузку Supabase
+      if (typeof supabase === 'undefined') {
+        console.error("❌ Supabase не найден");
+        document.getElementById('uploadedFiles').innerHTML = 
+          '<p style="color:red;">❌ Ошибка загрузки библиотеки Supabase</p>';
+        return;
+      }
+      
+      console.log("✅ Supabase загружен");
+
+      const supabaseUrl = 'https://epyutucscivggoitkbnz.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVweXV0dWNzY2l2Z2dvaXRrYm56Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxODQ4NjksImV4cCI6MjA3ODc2MDg2OX0.eW-2GJni95aCleqHa85oBpATb8VVj7kBykqqrxFWa4k';
+
+      const client = supabase.createClient(supabaseUrl, supabaseKey);
+      console.log("✅ Клиент создан");
+
+      const fileInput = document.getElementById("fileInput");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const fileListDiv = document.getElementById("fileList");
+      const uploadedFilesDiv = document.getElementById("uploadedFiles");
+
+      // Показ выбранных файлов
+      fileInput.addEventListener("change", function() {
+        fileListDiv.innerHTML = "";
+        if (fileInput.files.length === 0) return;
+        
+        for (let file of fileInput.files) {
+          const sizeKB = (file.size / 1024).toFixed(1);
+          fileListDiv.innerHTML += '<p>📄 ' + file.name + ' — ' + sizeKB + ' KB</p>';
+        }
+      });
+
+      // Загрузка файлов
+      uploadBtn.addEventListener("click", async function() {
+        if (fileInput.files.length === 0) {
+          alert("⚠️ Выберите файлы");
+          return;
+        }
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Загрузка...";
+
+        let success = 0;
+        let errors = 0;
+
+        for (let file of fileInput.files) {
+          try {
+            const timestamp = Date.now();
+            const uniqueName = timestamp + '_' + file.name;
+            
+            console.log("📤 Загрузка:", file.name);
+            
+            const { data, error } = await client.storage
+              .from('uploads')
+              .upload(uniqueName, file, { upsert: true });
+            
+            if (error) {
+              console.error("❌ Ошибка:", error.message);
+              errors++;
+            } else {
+              console.log("✅ Загружено:", uniqueName);
+              success++;
+            }
+          } catch (e) {
+            console.error("❌ Критическая ошибка:", e);
+            errors++;
+          }
+        }
+        
+        if (success > 0) {
+          alert('✅ Загружено: ' + success + (errors > 0 ? '\n❌ Ошибок: ' + errors : ''));
+        } else {
+          alert('❌ Ошибка загрузки. Откройте консоль (F12)');
+        }
+        
+        fileInput.value = "";
+        fileListDiv.innerHTML = "";
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = "Загрузить";
+        
+        await loadFilesList();
+      });
+
+      // Список файлов
+      async function loadFilesList() {
+        console.log("📋 Загрузка списка...");
+        
+        try {
+          const { data, error } = await client.storage
+            .from('uploads')
+            .list('', {
+              limit: 100,
+              sortBy: { column: 'created_at', order: 'desc' }
+            });
+          
+          if (error) {
+            console.error("❌ Ошибка списка:", error.message);
+            uploadedFilesDiv.innerHTML = '<p style="color:red;">❌ ' + error.message + '</p>';
+            return;
+          }
+
+          console.log("✅ Получено файлов:", data ? data.length : 0);
+
+          uploadedFilesDiv.innerHTML = "";
+          let count = 0;
+
+          if (!data || data.length === 0) {
+            uploadedFilesDiv.innerHTML = '<p>📭 Файлов нет</p>';
+            return;
+          }
+
+          for (let file of data) {
+            if (file.name === '.emptyFolderPlaceholder') continue;
+            
+            count++;
+            
+            const { data: urlData } = client.storage
+              .from('uploads')
+              .getPublicUrl(file.name);
+            
+            const sizeKB = file.metadata && file.metadata.size 
+              ? (file.metadata.size / 1024).toFixed(1) 
+              : '?';
+            
+            uploadedFilesDiv.innerHTML += 
+              '<div class="uploaded-file">' +
+              '<a href="' + urlData.publicUrl + '" target="_blank">' + file.name + '</a>' +
+              '<span>' + sizeKB + ' KB</span>' +
+              '</div>';
+          }
+          
+          if (count === 0) {
+            uploadedFilesDiv.innerHTML = '<p>📭 Файлов нет</p>';
+          } else {
+            console.log("✅ Показано файлов:", count);
+          }
+          
+        } catch (e) {
+          console.error("❌ Ошибка:", e);
+          uploadedFilesDiv.innerHTML = '<p style="color:red;">❌ ' + e.message + '</p>';
+        }
+      }
+
+      // Первая загрузка
+      loadFilesList();
+    });
+  </script>
+</body>
+</html>
