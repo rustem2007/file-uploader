@@ -13,7 +13,7 @@
 
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #acacac 0%, #000000 100%);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -31,7 +31,7 @@
     }
 
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #000000 0%, #f4f4f4 100%);
       color: white;
       padding: 30px;
       text-align: center;
@@ -53,7 +53,7 @@
     }
 
     .upload-area {
-      border: 3px dashed #667eea;
+      border: 3px dashed rgba(90, 92, 103, 0.35);
       border-radius: 15px;
       padding: 40px;
       text-align: center;
@@ -64,12 +64,12 @@
     }
 
     .upload-area:hover {
-      border-color: #764ba2;
-      background: #f0f2ff;
+      border-color: #928b9a;
+      background: #b9b9b9;
     }
 
     .upload-area.dragover {
-      border-color: #764ba2;
+      border-color: #aaaaaa;
       background: #e8ebff;
       transform: scale(1.02);
     }
@@ -80,12 +80,12 @@
     }
 
     .upload-area h3 {
-      color: #667eea;
+      color: #33353f;
       margin-bottom: 10px;
     }
 
     .upload-area p {
-      color: #666;
+      color: #222222;
       font-size: 14px;
     }
 
@@ -96,7 +96,7 @@
     #uploadBtn {
       width: 100%;
       padding: 15px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #313131 0%, #fafafa 100%);
       color: white;
       border: none;
       border-radius: 10px;
@@ -109,7 +109,7 @@
 
     #uploadBtn:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 10px 20px rgba(10, 10, 10, 0.4);
     }
 
     #uploadBtn:disabled {
@@ -149,7 +149,7 @@
       align-items: center;
       justify-content: center;
       font-size: 50px;
-      background: #e8ebff;
+      background: #b7b7b7;
       border-radius: 8px;
       margin-bottom: 8px;
     }
@@ -166,7 +166,7 @@
       position: absolute;
       top: 15px;
       right: 15px;
-      background: rgba(255, 0, 0, 0.8);
+      background: rgba(20, 16, 16, 0.8);
       color: white;
       border: none;
       border-radius: 50%;
@@ -201,7 +201,7 @@
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(90deg, #737373 0%, #000000 100%);
       width: 0%;
       transition: width 0.3s;
       display: flex;
@@ -214,7 +214,7 @@
 
     .divider {
       height: 2px;
-      background: linear-gradient(90deg, transparent, #667eea, transparent);
+      background: linear-gradient(90deg, transparent, #000000, transparent);
       margin: 30px 0;
     }
 
@@ -231,8 +231,8 @@
     }
 
     .files-count {
-      background: #667eea;
-      color: white;
+      background: #8d8d8d;
+      color: #ffffff;
       padding: 5px 15px;
       border-radius: 20px;
       font-size: 14px;
@@ -303,7 +303,7 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      background: rgba(255, 59, 48, 0.9);
+      background: rgba(0, 0, 0, 0.9);
       color: white;
       border: none;
       border-radius: 8px;
@@ -320,7 +320,7 @@
     }
 
     .file-card .delete-btn:hover {
-      background: rgba(255, 59, 48, 1);
+      background: rgb(128, 128, 128);
       transform: scale(1.05);
     }
 
@@ -352,15 +352,15 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>☁️ Файловое хранилище</h1>
+      <h1>Файловое хранилище</h1>
       <p>Загружайте и управляйте своими файлами</p>
     </div>
 
     <div class="content">
       <div class="upload-area" id="uploadArea">
-        <div class="upload-icon">📁</div>
+        <div class="upload-icon">🗁</div>
         <h3>Перетащите файлы сюда</h3>
-        <p>или нажмите для выбора (JPG, PNG, PDF)</p>
+        <p>Нажмите для выбора (JPG, PNG, PDF)</p>
         <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf">
       </div>
 
@@ -377,7 +377,7 @@
       <div class="divider"></div>
 
       <div class="files-header">
-        <h2>📂 Загруженные файлы</h2>
+        <h2>Загруженные файлы</h2>
         <span class="files-count" id="filesCount">0</span>
       </div>
 
